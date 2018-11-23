@@ -5,9 +5,9 @@
 module inst_rom(
 
 //	input	wire										clk,
-	input wire							ce,
+	input wire										ce,
 	input wire[`InstAddrBus]			addr,
-	output reg[`InstBus]				inst
+	output reg[`InstBus]					inst
 	
 );
 
@@ -20,7 +20,6 @@ module inst_rom(
 			inst <= `ZeroWord;
 	  end else begin
 		  inst <= inst_mem[addr[`InstMemNumLog2+1:2]];
-		  
 		end
 	end
 

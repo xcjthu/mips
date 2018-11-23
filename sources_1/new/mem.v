@@ -1,159 +1,100 @@
 
-
 `include "defines.v"
 
 module mem(
 
-	input wire rst,
+	input wire										rst,
 	
-	//来自执行阶段的信息	
-	input wire[`RegAddrBus] wd_i,
-	input wire wreg_i,
-	input wire[`RegBus] wdata_i,
-	input wire[`RegBus] hi_i,
-	input wire[`RegBus] lo_i,
-	input wire whilo_i,	
+	//����ִ�н׶ε���Ϣ	
+	input wire[`RegAddrBus]       wd_i,
+	input wire                    wreg_i,
+	input wire[`RegBus]					  wdata_i,
+	input wire[`RegBus]           hi_i,
+	input wire[`RegBus]           lo_i,
+	input wire                    whilo_i,	
 
-    input wire[`AluOpBus]        aluop_i,
+  input wire[`AluOpBus]        aluop_i,
 	input wire[`RegBus]          mem_addr_i,
 	input wire[`RegBus]          reg2_i,
 	
-	//来自memory的信息
+	//����memory����Ϣ
 	input wire[`RegBus]          mem_data_i,
 
-	//LLbit_i是LLbit寄存器的值
+	//LLbit_i��LLbit�Ĵ�����ֵ
 	input wire                  LLbit_i,
-	//但不一定是最新值，回写阶段可能要写LLbit，所以还要进一步判断
+	//����һ��������ֵ����д�׶ο���ҪдLLbit�����Ի�Ҫ��һ���ж�
 	input wire                  wb_LLbit_we_i,
 	input wire                  wb_LLbit_value_i,
+
+	//Э������CP0��д�ź�
+	input wire                   cp0_reg_we_i,
+	input wire[4:0]              cp0_reg_write_addr_i,
+	input wire[`RegBus]          cp0_reg_data_i,
 	
+	input wire[31:0]             excepttype_i,
+	input wire                   is_in_delayslot_i,
+	input wire[`RegBus]          current_inst_address_i,	
 	
-	//CP0
-	input wire cp0_reg_we_i,
-	input wire[4:0] cp0_reg_write_addr_i,
-	input wire[`RegBus] cp0_reg_data_i,
-	
-	// exception info from ex
-	input wire[31:0] excepttype_i,
-	input wire is_in_delayslot_i,
-	input wire[`RegBus] current_inst_address_i,
-	
-	// info from CP0
-	input wire[`RegBus] cp0_status_i,
-	input wire[`RegBus] cp0_cause_i,
-	input wire[`RegBus] cp0_epc_i,
+	//CP0�ĸ����Ĵ�����ֵ������һ�������µ�ֵ��Ҫ��ֹ��д�׶�ָ��дCP0
+	input wire[`RegBus]          cp0_status_i,
+	input wire[`RegBus]          cp0_cause_i,
+	input wire[`RegBus]          cp0_epc_i,
 	input wire[`RegBus] cp0_ebase_i,
+
+
+    input wire                    wb_cp0_reg_we,
+	input wire[4:0]               wb_cp0_reg_write_addr,
+	input wire[`RegBus]           wb_cp0_reg_data,
 	
-	
-	// from wb
-	input wire wb_cp0_reg_we,
-	input wire[4:0] wb_cp0_reg_write_addr,
-	input wire[`RegBus] wb_cp0_reg_data,
-	
-	// exception
-	output reg[31:0] excepttype_o,
-	output wire[`RegBus] cp0_epc_o,
-	output wire is_in_delayslot_o,
-	output wire[`RegBus] cp0_ebase_o,
-	
-	output wire[`RegBus] current_inst_address_o,
-		
-	//CP0
-	output reg cp0_reg_we_o,
-	output reg[4:0] cp0_reg_write_addr_o,
-	output reg[`RegBus] cp0_reg_data_o,
-	
-	//送到回写阶段的信息
+	//�͵���д�׶ε���Ϣ
 	output reg[`RegAddrBus]      wd_o,
 	output reg                   wreg_o,
-	output reg[`RegBus]			 wdata_o,
+	output reg[`RegBus]					 wdata_o,
 	output reg[`RegBus]          hi_o,
 	output reg[`RegBus]          lo_o,
 	output reg                   whilo_o,
 
 	output reg                   LLbit_we_o,
 	output reg                   LLbit_value_o,
+
+	output reg                   cp0_reg_we_o,
+	output reg[4:0]              cp0_reg_write_addr_o,
+	output reg[`RegBus]          cp0_reg_data_o,
 	
-	//送到memory的信息
+	//�͵�memory����Ϣ
 	output reg[`RegBus]          mem_addr_o,
-	output wire					 mem_we_o,
+	output wire mem_we_o,
 	output reg[3:0]              mem_sel_o,
 	output reg[`RegBus]          mem_data_o,
-	output reg                   mem_ce_o	
+	output reg                   mem_ce_o,
+	
+	output reg[31:0]             excepttype_o,
+	output wire[`RegBus]         cp0_epc_o,
+	output wire[`RegBus] cp0_ebase_o,
+	
+	output wire                  is_in_delayslot_o,
+	
+	output wire[`RegBus]         current_inst_address_o		
 	
 );
 
-    reg LLbit;
+  reg LLbit;
 	wire[`RegBus] zero32;
+	reg[`RegBus] cp0_status;
+	reg[`RegBus] cp0_cause;
+	reg[`RegBus] cp0_epc;
+	reg[`RegBus] cp0_ebase;
 	reg mem_we;
-    
-    // used to save value in cp0 register
-    reg[`RegBus] cp0_status;
-    reg[`RegBus] cp0_cause;
-    reg[`RegBus] cp0_epc;
-    reg[`RegBus] cp0_ebase;
-    
-    // 如果发生异常 则中断之后的写操作
-	assign mem_we_o = mem_we & (~(|excepttype_o));
-	//assign mem_we_o = mem_we;
-	assign zero32 = `ZeroWord;
-	
-	assign is_in_delayslot_o = is_in_delayslot_i;
-	
-	assign current_inst_address_o = current_inst_address_i;
-	
-	
-	//获取CP0中几个寄存器的最新的值
-	// status
-	always @(*) begin
-	   if (rst == `RstEnable) begin
-	       cp0_status <= `ZeroWord;
-	   end else if ((wb_cp0_reg_we == `WriteEnable) && (wb_cp0_reg_write_addr == `CP0_REG_STATUS)) begin
-	       cp0_status <= wb_cp0_reg_data;
-	   end else begin
-	       cp0_status <= cp0_status_i;
-	   end
-	end
-	
-	//EPC
-	always @(*) begin
-       if (rst == `RstEnable) begin
-           cp0_epc <= `ZeroWord;
-       end else if ((wb_cp0_reg_we == `WriteEnable) && (wb_cp0_reg_write_addr == `CP0_REG_EPC)) begin
-           cp0_epc <= wb_cp0_reg_data;
-       end else begin
-           cp0_epc <= cp0_epc_i;
-       end
-    end
-    assign cp0_epc_o = cp0_epc;
-    
-    //ebase
-    always @(*) begin
-        if (rst == `RstEnable) begin
-            cp0_ebase <= `ZeroWord;
-        end else if((wb_cp0_reg_we == `WriteEnable) && (wb_cp0_reg_write_addr == `CP0_REG_EBASE)) begin
-            cp0_ebase <= wb_cp0_reg_data;
-        end else begin
-            cp0_ebase <= cp0_ebase_i;
-        end
-    end
-    assign cp0_ebase_o = cp0_ebase;
-    
-    //Cause
-    always @(*) begin
-       if (rst == `RstEnable) begin
-           cp0_cause <= `ZeroWord;
-       end else if ((wb_cp0_reg_we == `WriteEnable) && (wb_cp0_reg_write_addr == `CP0_REG_CAUSE)) begin
-           cp0_cause[9:8] <= wb_cp0_reg_data[9:8];
-           cp0_cause[22] <= wb_cp0_reg_data[22];
-           cp0_cause[23] <= wb_cp0_reg_data[23];
-       end else begin
-           cp0_status <= cp0_cause_i;
-       end
-    end
-    
 
-    //获取最新的LLbit的值
+	assign mem_we_o = mem_we & (~(|excepttype_o));
+	assign zero32 = `ZeroWord;
+
+	assign is_in_delayslot_o = is_in_delayslot_i;
+	assign current_inst_address_o = current_inst_address_i;
+	assign cp0_epc_o = cp0_epc;
+	assign cp0_ebase_o = cp0_ebase;
+
+  //��ȡ���µ�LLbit��ֵ
 	always @ (*) begin
 		if(rst == `RstEnable) begin
 			LLbit <= 1'b0;
@@ -166,35 +107,10 @@ module mem(
 		end
 	end
 	
-	
-	always @ (*) begin
-	    if (rst == `RstEnable) begin
-	       excepttype_o <= `ZeroWord;
-	    end else begin
-	       excepttype_o <= `ZeroWord;
-	       if (current_inst_address_i != `ZeroWord) begin
-	           if (((cp0_cause[15:8] & cp0_status[15:8]) != 8'h00) && 
-	               (cp0_status[1] == 1'b0) &&
-	               (cp0_status[0] == 1'b1)) begin
-	               excepttype_o <= 32'h00000001; // interrupt
-	           end else if (excepttype_i[8] == 1'b1) begin
-	               excepttype_o <= 32'h00000008; //syscall
-	           end else if (excepttype_i[9] == 1'b1) begin
-	               excepttype_o <= 32'h0000000a; // inst_valid
-	           end else if (excepttype_i[11] == 1'b1) begin
-	               excepttype_o <= 32'h0000000c; // overflow
-	           end else if (excepttype_i[12] == 1'b1) begin
-	               excepttype_o <= 32'h0000000e; //eret
-	           end
-	       end
-	    end
-	end
-	
-	
 	always @ (*) begin
 		if(rst == `RstEnable) begin
-		  wd_o <= `NOPRegAddr;
-		  wreg_o <= `WriteDisable;
+			wd_o <= `NOPRegAddr;
+			wreg_o <= `WriteDisable;
 		  wdata_o <= `ZeroWord;
 		  hi_o <= `ZeroWord;
 		  lo_o <= `ZeroWord;
@@ -202,39 +118,34 @@ module mem(
 		  mem_addr_o <= `ZeroWord;
 		  mem_we <= `WriteDisable;
 		  mem_sel_o <= 4'b0000;
-		  mem_data_o <= `ZeroWord;
-		  mem_ce_o <= `ChipDisable;		
-		  LLbit_we_o <= 1'b0;
-		  LLbit_value_o <= 1'b0;
-		  
-		  cp0_reg_we_o <= `WriteDisable;
-		  cp0_reg_write_addr_o <= 5'b00000;
-		  cp0_reg_data_o <= `ZeroWord;
-		  		      
-		end else begin
-		  wd_o <= wd_i;
-		  wreg_o <= wreg_i;
-		  wdata_o <= wdata_i;
-		  hi_o <= hi_i;
-		  lo_o <= lo_i;
-		  whilo_o <= whilo_i;		
-		  mem_we <= `WriteDisable;
-		  mem_addr_o <= `ZeroWord;
-		  mem_sel_o <= 4'b1111;
+		  mem_data_o <= `ZeroWord;		
 		  mem_ce_o <= `ChipDisable;
 		  LLbit_we_o <= 1'b0;
-		  LLbit_value_o <= 1'b0;
-		  
-		  //pass info about CP0 to next module
+		  LLbit_value_o <= 1'b0;		
+		  cp0_reg_we_o <= `WriteDisable;
+		  cp0_reg_write_addr_o <= 5'b00000;
+		  cp0_reg_data_o <= `ZeroWord;		        
+		end else begin
+		  wd_o <= wd_i;
+			wreg_o <= wreg_i;
+			wdata_o <= wdata_i;
+			hi_o <= hi_i;
+			lo_o <= lo_i;
+			whilo_o <= whilo_i;		
+			mem_we <= `WriteDisable;
+			mem_addr_o <= `ZeroWord;
+			mem_sel_o <= 4'b1111;
+			mem_ce_o <= `ChipDisable;
+		  LLbit_we_o <= 1'b0;
+		  LLbit_value_o <= 1'b0;		
 		  cp0_reg_we_o <= cp0_reg_we_i;
 		  cp0_reg_write_addr_o <= cp0_reg_write_addr_i;
-		  cp0_reg_data_o <= cp0_reg_data_i;
-		  		
-		  case (aluop_i)
-			`EXE_LB_OP:		begin
-			        mem_addr_o <= mem_addr_i;
-				    mem_we <= `WriteDisable;
-				    mem_ce_o <= `ChipEnable;
+		  cp0_reg_data_o <= cp0_reg_data_i;		 		  	
+			case (aluop_i)
+				`EXE_LB_OP:		begin
+					mem_addr_o <= mem_addr_i;
+					mem_we <= `WriteDisable;
+					mem_ce_o <= `ChipEnable;
 					case (mem_addr_i[1:0])
 						2'b11:	begin
 							wdata_o <= {{24{mem_data_i[31]}},mem_data_i[31:24]};
@@ -376,10 +287,10 @@ module mem(
 					mem_addr_o <= mem_addr_i;
 					mem_we <= `WriteDisable;
 					wdata_o <= mem_data_i;	
-		  		    LLbit_we_o <= 1'b1;
-		  		    LLbit_value_o <= 1'b1;
-		  		    mem_sel_o <= 4'b1111;			
-		  		    mem_ce_o <= `ChipEnable;						
+		  		LLbit_we_o <= 1'b1;
+		  		LLbit_value_o <= 1'b1;
+		  		mem_sel_o <= 4'b1111;					
+		  		mem_ce_o <= `ChipEnable;				
 				end				
 				`EXE_SB_OP:		begin
 					mem_addr_o <= mem_addr_i;
@@ -488,18 +399,94 @@ module mem(
 						mem_we <= `WriteEnable;
 						mem_data_o <= reg2_i;
 						wdata_o <= 32'b1;
-						mem_sel_o <= 4'b1111;	
-						mem_ce_o <= `ChipEnable;					
+						mem_sel_o <= 4'b1111;		
+						mem_ce_o <= `ChipEnable;				
 					end else begin
 						wdata_o <= 32'b0;
 					end
 				end				
 				default:		begin
-          //什么也不做
+          //ʲôҲ����
 				end
 			endcase							
 		end    //if
 	end      //always
+
+	always @ (*) begin
+		if(rst == `RstEnable) begin
+			cp0_status <= `ZeroWord;
+		end else if((wb_cp0_reg_we == `WriteEnable) && 
+								(wb_cp0_reg_write_addr == `CP0_REG_STATUS ))begin
+			cp0_status <= wb_cp0_reg_data;
+		end else begin
+		  cp0_status <= cp0_status_i;
+		end
+	end
+	
+	always @ (*) begin
+		if(rst == `RstEnable) begin
+			cp0_epc <= `ZeroWord;
+		end else if((wb_cp0_reg_we == `WriteEnable) && 
+								(wb_cp0_reg_write_addr == `CP0_REG_EPC ))begin
+			cp0_epc <= wb_cp0_reg_data;
+		end else begin
+		    cp0_epc <= cp0_epc_i;
+		end
+	end
+	
+	always @(*) begin
+	   if (rst == `RstEnable) begin
+	       cp0_ebase <= `ZeroWord;
+	   end else if((wb_cp0_reg_we == `WriteEnable) &&
+	                   (wb_cp0_reg_write_addr == `CP0_REG_EBASE)) begin
+	       cp0_ebase <= wb_cp0_reg_data;
+	   end else begin
+	       cp0_ebase <= cp0_ebase_i;
+	   end
+	end
+	//assign cp0_ebase_o = cp0_ebase;
+
+    always @ (*) begin
+		if(rst == `RstEnable) begin
+			cp0_cause <= `ZeroWord;
+		end else if((wb_cp0_reg_we == `WriteEnable) && 
+								(wb_cp0_reg_write_addr == `CP0_REG_CAUSE ))begin
+			cp0_cause[9:8] <= wb_cp0_reg_data[9:8];
+			cp0_cause[22] <= wb_cp0_reg_data[22];
+			cp0_cause[23] <= wb_cp0_reg_data[23];
+		end else begin
+		  cp0_cause <= cp0_cause_i;
+		end
+	end
+
+	always @ (*) begin
+		if(rst == `RstEnable) begin
+			excepttype_o <= `ZeroWord;
+		end else begin
+			excepttype_o <= `ZeroWord;
 			
+			if(current_inst_address_i != `ZeroWord) begin
+				if(((cp0_cause[15:8] & (cp0_status[15:8])) != 8'h00) && (cp0_status[1] == 1'b0) && 
+							(cp0_status[0] == 1'b1)) begin
+					excepttype_o <= 32'h00000001;        //interrupt
+				end else if(excepttype_i[14] == 1'b1) begin
+				    excepttype_o <= 32'h00000010;
+				end else if(excepttype_i[8] == 1'b1) begin
+			  	    excepttype_o <= 32'h00000008;        //syscall
+				end else if(excepttype_i[9] == 1'b1) begin
+					excepttype_o <= 32'h0000000a;        //inst_invalid
+				end else if(excepttype_i[10] ==1'b1) begin
+					excepttype_o <= 32'h0000000d;        //trap
+				end else if(excepttype_i[11] == 1'b1) begin  //ov
+					excepttype_o <= 32'h0000000c;
+				end else if(excepttype_i[12] == 1'b1) begin  //eret
+					excepttype_o <= 32'h0000000e;
+				end else if (excepttype_i[13] == 1'b1) begin
+				    excepttype_o <= 32'h0000000f; // break
+				end
+			end
+				
+		end
+	end			
 
 endmodule

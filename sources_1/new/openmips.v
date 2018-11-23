@@ -1,5 +1,3 @@
-
-
 `include "defines.v"
 
 module openmips(
@@ -523,8 +521,8 @@ module openmips(
 		.clk(clk),
 		.rst(rst),
 
-    .stall(stall),
-    .flush(flush),
+        .stall(stall),
+        .flush(flush),
 
 		//来自访存阶段MEM模块的信息	
 		.mem_wd(mem_wd_o),

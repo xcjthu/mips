@@ -1,4 +1,39 @@
-
+//////////////////////////////////////////////////////////////////////
+////                                                              ////
+//// Copyright (C) 2014 leishangwen@163.com                       ////
+////                                                              ////
+//// This source file may be used and distributed without         ////
+//// restriction provided that this copyright statement is not    ////
+//// removed from the file and that any derivative work contains  ////
+//// the original copyright notice and the associated disclaimer. ////
+////                                                              ////
+//// This source file is free software; you can redistribute it   ////
+//// and/or modify it under the terms of the GNU Lesser General   ////
+//// Public License as published by the Free Software Foundation; ////
+//// either version 2.1 of the License, or (at your option) any   ////
+//// later version.                                               ////
+////                                                              ////
+//// This source is distributed in the hope that it will be       ////
+//// useful, but WITHOUT ANY WARRANTY; without even the implied   ////
+//// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      ////
+//// PURPOSE.  See the GNU Lesser General Public License for more ////
+//// details.                                                     ////
+////                                                              ////
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+// Module:  openmips_min_sopc
+// File:    openmips_min_sopc.v
+// Author:  Lei Silei
+// E-mail:  leishangwen@163.com
+// Description: »ùÓÚOpenMIPS´¦ÀíÆ÷µÄÒ»¸ö¼òµ¥SOPC£¬ÓÃÓÚÑéÖ¤¾ß±¸ÁË
+//              wishbone×ÜÏß½Ó¿ÚµÄopenmips£¬¸ÃSOPC°üº¬openmips¡¢
+//              wb_conmax¡¢GPIO controller¡¢flash controller£¬uart 
+//              controller£¬ÒÔ¼°ÓÃÀ´·ÂÕæflashµÄÄ£¿éflashmem£¬ÔÚÆäÖÐ
+//              ´æ´¢Ö¸Áî£¬ÓÃÀ´·ÂÕæÍâ²¿ramµÄÄ£¿édatamem£¬ÔÚÆäÖÐ´æ´¢
+//              Êý¾Ý£¬²¢ÇÒ¾ßÓÐwishbone×ÜÏß½Ó¿Ú    
+// Revision: 1.0
+//////////////////////////////////////////////////////////////////////
 
 `include "defines.v"
 
@@ -9,7 +44,7 @@ module openmips_min_sopc(
 	
 );
 
-  //è¿žæŽ¥æŒ‡ä»¤å­˜å‚¨å™¨
+  //Á¬½ÓÖ¸Áî´æ´¢Æ÷
   wire[`InstAddrBus] inst_addr;
   wire[`InstBus] inst;
   wire rom_ce;
@@ -17,9 +52,13 @@ module openmips_min_sopc(
   wire[`RegBus] mem_addr_i;
   wire[`RegBus] mem_data_i;
   wire[`RegBus] mem_data_o;
-  wire[3:0] mem_sel_i;   
-  wire mem_ce_i; 
+  wire[3:0] mem_sel_i; 
+  wire mem_ce_i;   
+  wire[5:0] int;
+  wire timer_int;
  
+  //assign int = {5'b00000, timer_int, gpio_int, uart_int};
+  assign int = {5'b00000, timer_int};
 
  openmips openmips0(
 		.clk(clk),
@@ -29,12 +68,16 @@ module openmips_min_sopc(
 		.rom_data_i(inst),
 		.rom_ce_o(rom_ce),
 
+    .int_i(int),
+
 		.ram_we_o(mem_we_i),
 		.ram_addr_o(mem_addr_i),
 		.ram_sel_o(mem_sel_i),
 		.ram_data_o(mem_data_i),
 		.ram_data_i(mem_data_o),
-		.ram_ce_o(mem_ce_i)		
+		.ram_ce_o(mem_ce_i),
+		
+		.timer_int_o(timer_int)			
 	
 	);
 	
