@@ -6,7 +6,6 @@ module if_id(
 	input wire clk,
 	input wire rst,
 
-	//���Կ���ģ�����Ϣ
 	input wire[5:0]               stall,	
 	input wire                    flush,
 

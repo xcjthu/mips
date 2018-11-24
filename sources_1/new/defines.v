@@ -1,4 +1,4 @@
-//ȫ��
+
 `define RstEnable 1'b1
 `define RstDisable 1'b0
 `define ZeroWord 32'h00000000
@@ -242,20 +242,17 @@
 `define EXE_RES_NOP 3'b000
 
 
-//ָ��洢��inst_rom
 `define InstAddrBus 31:0
 `define InstBus 31:0
 `define InstMemNum 262143
 `define InstMemNumLog2 18
 
-//���ݴ洢��data_ram
 `define DataAddrBus 31:0
 `define DataBus 31:0
 `define DataMemNum 131071
 `define DataMemNumLog2 17
 `define ByteWidth 7:0
 
-//ͨ�üĴ���regfile
 `define RegAddrBus 4:0
 `define RegBus 31:0
 `define RegWidth 32
@@ -265,7 +262,7 @@
 `define RegNumLog2 5
 `define NOPRegAddr 5'b00000
 
-//����div
+
 `define DivFree 2'b00
 `define DivByZero 2'b01
 `define DivOn 2'b10
@@ -275,11 +272,11 @@
 `define DivStart 1'b1
 `define DivStop 1'b0
 
-//CP0�Ĵ�����ַ
-`define CP0_REG_COUNT    5'b01001        //�ɶ�д
-`define CP0_REG_COMPARE    5'b01011      //�ɶ�д
-`define CP0_REG_STATUS    5'b01100       //�ɶ�д
-`define CP0_REG_CAUSE    5'b01101        //ֻ��
-`define CP0_REG_EPC    5'b01110          //�ɶ�д
-`define CP0_REG_EBASE    5'b01111         //ֻ��
-`define CP0_REG_CONFIG    5'b10000       //ֻ��
+`define CP0_REG_COUNT    5'b01001
+`define CP0_REG_COMPARE    5'b01011
+`define CP0_REG_STATUS    5'b01100
+`define CP0_REG_CAUSE    5'b01101
+`define CP0_REG_EPC    5'b01110
+`define CP0_REG_EBASE    5'b01111
+`define CP0_REG_CONFIG    5'b10000
+`define CP0_REG_BADVADDR 5'b01000
