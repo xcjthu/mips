@@ -28,6 +28,14 @@ module cp0_reg(
 	output reg[`RegBus] ebase_o,
 	output reg[`RegBus] badvaddr_o,
 	
+	output reg[`RegBus] entryhi_o,
+	output reg[`RegBus] entrylo0_o,
+	output reg[`RegBus] entrylo1_o,
+	output reg[`RegBus] pagemask_o,
+	output reg[`RegBus] index_o,
+	output reg[`RegBus] random_o,
+	output reg[`RegBus] context_o,
+	
 	output reg timer_int_o    
 	
 );
@@ -41,7 +49,17 @@ module cp0_reg(
 			cause_o <= `ZeroWord;
 			epc_o <= `ZeroWord;
 			
-			config_o <= 32'b00000000000000001000000000000000;
+			// config_o <= 32'b00000000000000001000000000000000;
+			//config_o <= 32'b  
+			entryhi_o <= 32'bxxxxxxxxxxxxxxxxxxx000xxxxxxxxxx;//config_o[28]
+			entrylo0_o <= 32'b00xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+			entrylo1_o <= 32'b00xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+			
+			pagemask_o <= 32'b000xxxxxxxxxxxxxxxx0000000000000;
+            index_o <= 32'b0;
+            random_o <= 32'b0;
+            context_o <= 32'b0
+			
 			
 			ebase_o <= 32'b10000000000000000000000000000000;
             timer_int_o <= `InterruptNotAssert;
@@ -80,9 +98,29 @@ module cp0_reg(
                         end else begin
                             ebase_o[31:12] <= data_i[31:12];
                         end
-                        ebase_o[11] <= data_i[11];
-                                            
-                    end			
+                        ebase_o[11] <= data_i[11];           
+                    end	
+                    `CP0_REG_ENTRYHI: begin
+                        entryhi_o <= data_i;
+                    end
+                    `CP0_REG_ENTRYLO0: begin
+                        entrylo0_o[29:0] <= data_i[29:0];
+                    end
+                    `CP0_REG_ENTRYLO1: begin
+                        entrylo1_o[29:0] <= data_i[29:0];
+                    end
+                    `CP0_REG_PAGEMASK: begin
+                        pagemask_o[28:11] <= data_i[28:11];
+                    end
+                    `CP0_REG_INDEX: begin
+                        index_o <= data_i;
+                    end
+                    `CP0_REG_RANDOM: begin
+                        random_o <= data_i;
+                    end
+                    `CP0_REG_CONTEXT: begin
+                        
+                    end
 				endcase  //case addr_i
 			end
 
@@ -244,6 +282,27 @@ module cp0_reg(
                 end
                 `CP0_REG_BADVADDR: begin
                     data_o <= badvaddr_o;
+                end
+                `CP0_REG_ENTRYHI: begin
+                    data_o <= entryhi_o;
+                end
+                `CP0_REG_ENTRYLO0: begin
+                    data_o <= entrylo0_o;
+                end
+                `CP0_REG_ENTRYLO1: begin
+                    data_o <= entrylo1_o;
+                end
+                `CP0_REG_PAGEMASK: begin
+                    data_o <= pagemask_o;
+                end
+                `CP0_REG_INDEX: begin
+                    data_o <= index_o;
+                end
+                `CP0_REG_RANDOM: begin
+                    data_o <= random_o;
+                end
+                `CP0_REG_CONTEXT: begin
+                    data_o <= context_o;
                 end
                 default: 	begin
                 end			
